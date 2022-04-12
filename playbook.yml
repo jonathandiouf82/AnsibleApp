@@ -1,0 +1,103 @@
+- name: Playbook Symfony
+  hosts: web
+  remote_user: root
+  become: yes
+
+  tasks:
+    - name: Check Operating System is Debian
+      fail:
+        msg: You don't have the good operating system or the good version of Debian
+      when:
+        - ansible_distribution == "Debian"
+        - ansible_distribution_version != "11"
+
+    - name: Update and Upgrade
+      shell: apt update & apt upgrade -y
+
+    - name: create folder
+      shell: mkdir app
+      chdir: /var/www
+
+    - name: Clone repo
+      ansible.builtin.git:
+        repo: https://github.com/EpitechMscProPromo2024/T-WEB-600-TLS-6-1-ecommerce-jonathan.diouf.git
+        dest: /var/www/app
+
+    - name: Install basic packages
+      apt:
+        name:
+          - git
+          - vim
+          - apache2
+          - curl
+          - mariadb-server
+          - mariadb-client
+        update_cache: yes
+        state: latest
+
+    - name: Recuperer l'espace requis pour installer PHP
+      shell: apt-get install ca-certificates apt-transport-https software-properties-common wget curl lsb-release -y
+
+    - name: curl php8
+      shell: curl -sSL https://packages.sury.org/php/README.txt | bash -x
+
+    - name: Install packages required
+      apt:
+        name:
+          - php8.0
+          - libapache2-mod-php8.0
+        update_cache: yes
+        state: latest
+
+    - name: Check if composer exists
+      stat:
+        path: /usr/local/bin/composer
+        checksum_algorithm: sha256
+      register: composer_file
+    - name: Download Composer
+      get_url:
+        url: https://getcomposer.org/installer
+        dest: /root/composer-setup.php
+      when: >
+        composer_file.stat.isreg is not defined or
+        not composer_file.stat.isreg or
+        composer_file.stat.checksum != 'c3b2bc477429c923c69f7f9b137e06b2a93c6a1e192d40ffad1741ee5d54760d'
+    - name: Add composer
+      command: php /root/composer-setup.php --version=2.0.4 --install-dir=/usr/local/bin --filename=composer
+      when: >
+        composer_file.stat.isreg is not defined or
+        not composer_file.stat.isreg or
+        composer_file.stat.checksum != 'c3b2bc477429c923c69f7f9b137e06b2a93c6a1e192d40ffad1741ee5d54760d'
+    - name: Get Symfony repo
+      shell: echo 'deb [trusted=yes] https://repo.symfony.com/apt/ /' | tee /etc/apt/sources.list.d/symfony-cli.list
+    - name: update packages
+      command: apt update -y
+
+    - name: Install Symfony-cli
+      command: apt install symfony-cli
+
+    - name: Restart MariaDB 10.3
+      service: name=mysql state=restarted
+
+    - name: Install PyMySQL
+      shell: "{{ item }}"
+      with_items:
+        - apt install python3-mysqldb
+    
+    - name: Copy sql file
+      copy:
+        src: app/config.sql
+        dest: /
+
+    - name: Apache conf
+      shell: mv apache/sites-available/symfony.conf /etc/apache2/sites-available/symfony.conf
+      chdir: /var/www/app
+      
+    - name: restart Apache
+      shell: systemctl restart apache2
+
+    - name: mysql file
+      community.mysql.mysql_db:
+        name: ecommerce
+        state: import
+        target: /var/www/app/config.sql
