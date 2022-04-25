@@ -5,3 +5,9 @@ controllers:
 kernel:
     resource: ../src/Kernel.php
     type: annotation
+
+login:
+    path: /api/login
+    methods: ['POST']    
+    defaults:
+        _format: json 
