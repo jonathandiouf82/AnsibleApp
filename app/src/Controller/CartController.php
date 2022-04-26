@@ -56,12 +56,12 @@ class CartController extends AbstractController
         return new JsonResponse($this->displayCart($cart));
     }
 
-    #[Route('/validate/{cartId}', methods: 'POST', name: 'cart.validate')]
+    #[Route('/validate', methods: 'POST', name: 'cart.validate')]
     public function validate(): JsonResponse
     {
         $cart = $this->getUser()->getCart();
         if ($cart->getProductList() == []) {
-            return new JsonResponse("Impossible to validate an empty cart!", 406);
+            return new JsonResponse("error : impossible to validate an empty cart!", 406);
         }
         $order = new Order();
         $order->setTotalPrice($cart->getTotalPrice());

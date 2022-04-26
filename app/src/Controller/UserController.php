@@ -53,7 +53,7 @@ class UserController extends AbstractController
         return new JsonResponse($user);
     }
 
-    #[Route('/user', methods: 'GET', name: 'user.getInfos')]
+    #[Route('/users', methods: 'GET', name: 'user.getInfos')]
     public function getCurrentUserInfos(): ?JsonResponse
     {
         $user = $this->getUser();
@@ -61,7 +61,7 @@ class UserController extends AbstractController
         return new JsonResponse($this->displayUser());
     }
 
-    #[Route('/user', methods: 'PATCH', name: 'user.update')]
+    #[Route('/users', methods: 'PATCH', name: 'user.update')]
     public function updateCurrentUser(Request $req): JsonResponse
     {
         $data = json_decode($req->getContent());
